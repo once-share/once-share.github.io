@@ -77,6 +77,7 @@
   let previewUrl = null;
   let receivedUrl = null;
   let consumed = false;
+  let expired = false;
 
   // Discourage ordinary image saving gestures; this cannot prevent screenshots or network extraction.
   for (const image of [preview, receivedImage]) {
@@ -85,6 +86,13 @@
     image.addEventListener("dragstart", event => event.preventDefault());
     image.addEventListener("selectstart", event => event.preventDefault());
   }
+
+  // Hide the received image while this tab is in the background.
+  // This is only a visual deterrent; it cannot block screenshots or other capture methods.
+  document.addEventListener("visibilitychange", () => {
+    if (!token || !receivedImage.getAttribute("src") || expired) return;
+    receivedImage.style.visibility = document.hidden ? "hidden" : "visible";
+  });
 
   function status(node, message, error=false) {
     node.textContent = message;
@@ -195,6 +203,7 @@
         timer.textContent = remaining > 0 ? "残り " + remaining + " 秒" : "表示期限が終了しました";
         if (remaining <= 0) {
           clearInterval(interval);
+          expired = true;
           image.removeAttribute("src");
           image.style.display = "none";
           if (receivedUrl) URL.revokeObjectURL(receivedUrl);
